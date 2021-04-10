@@ -1,7 +1,7 @@
 from gymenv_v2 import make_multiple_env
 import numpy as np
 from value import ValueFunction
-from policy import Policy, SimplePolicy
+from policy import Policy, SimplePolicy, SimplePolicy2
 import wandb
 import torch
 from multiprocessing import Pool
@@ -24,6 +24,12 @@ custom_config = {
     "reward_type"     : 'obj'                           # DO NOT CHANGE reward_type
 }
 
+custom_config2 = {
+    "load_dir"        : 'instances/randomip_n10_m10',   # this is the location of the randomly generated instances (you may specify a different directory)
+    "idx_list"        : list(range(5)),                # take the first 20 instances from the directory
+    "timelimit"       : 5,                             # the maximum horizon length is 50
+    "reward_type"     : 'obj'                           # DO NOT CHANGE reward_type
+}
 # Easy Setup: Use the following environment settings. We will evaluate your agent with the same easy config below:
 easy_config = {
     "load_dir"        : 'instances/train_10_n60_m60',
@@ -44,27 +50,29 @@ if __name__ == "__main__":
 
     # hyperparameters
     numtrajs = 3  # num of trajecories from the current policy to collect in each iteration
-    iterations = 100  # total num of iterations
+    iterations = 1000  # total num of iterations
     gamma = .99  # discount
     sigma = 2
     N = 3
-    alpha = 0.1
+    alpha = 0.5
 
     # create env
-    env = make_multiple_env(**custom_config)
+    env = make_multiple_env(**custom_config2)
     max_gap = {i: single_env.env.max_gap()[0] for i, single_env in enumerate(env.envs)}
     print(f'Max gap : {max_gap}')
     A, b, c0, cuts_a, cuts_b = env.reset()
     varsize =  A.shape[1]    
 
     # initialize networks
-    actor = SimplePolicy(varsize)
+    actor = SimplePolicy2(varsize)
 
     #To record training reward for logging and plotting purposes
     rrecord = []
     
     # main iteration
-    for ite in range(iterations): 
+    for ite in range(iterations):
+        sigma = 4 * max(0.5, 1- ite/iterations)
+        alpha = min(0.9, max(0.1, 1 - ite/iterations))
         weights = actor.get_weights() 
 
         for n in range(N):
@@ -87,29 +95,36 @@ if __name__ == "__main__":
 
                 #TODO: Multiprocessing output the exact same result ..
                 
-                # Use multiple processes to roll out faster
-                # def rollout(combo):
-                #     actor, env, seed = combo
-                #     np.random.seed(seed)
-                #     return actor.rollout(env)
+                #Use multiple processes to roll out faster
+                def rollout(combo):
+                    actor, env, seed = combo
+                    np.random.seed(seed)
+                    return actor.rollout(env)
 
-                # with Pool(5) as p:
-                #     results = (p.map(rollout,zip([copy.deepcopy(actor_clone) for _ in range(numtrajs)], [copy.deepcopy(env) for _ in range(numtrajs)], list(range(numtrajs)))))
-                
-                # results, actions = list(zip(*results))
+                with Pool(5) as p:
+                    results = (p.map(rollout,zip([copy.deepcopy(actor_clone) for _ in range(numtrajs)], [copy.deepcopy(env) for _ in range(numtrajs)], list(range(numtrajs)))))
+                                    
+                # results, actions, env_index = list(zip(*results))
                 # J = [round(np.sum([reward * gamma **i for i,reward in enumerate(result)]),3) for result in results]
                 # print(f'iter = {ite}, n = {n}, J = {J}')
                 # J = np.sum(J)
-
+                
                 J = 0
-                actionss = []
-                for num in range(numtrajs):
-                    rews,actions,env_index = actor_clone.rollout(env)
-                    actionss.append(actions)
+                for num, result in enumerate(results):
+                    rews, actions, env_index = result
                     J+= np.sum([reward * gamma **i for i,reward in enumerate(rews)])
                     print(f'iter = {ite}, n = {n}, traj = {num}: rews = {np.sum(rews)}, env = {env_index}, max_gap = {max_gap[env_index]}')
-                # Update the weights variable which will later be used to update actor
-                weights = [layer + alpha * (J/numtrajs * mult * epsilons[i] / sigma/N/2) if layer is not None else None for i,layer in enumerate(weights)] 
+                weights = [layer + alpha * (J/numtrajs * mult * epsilons[i] / sigma/N/2) if layer is not None else None for i,layer in enumerate(weights)]
+
+                # J = 0
+                # actionss = []
+                # for num in range(numtrajs):
+                #     rews,actions,env_index = actor_clone.rollout(env)
+                #     actionss.append(actions)
+                #     J+= np.sum([reward * gamma **i for i,reward in enumerate(rews)])
+                #     print(f'iter = {ite}, n = {n}, traj = {num}: rews = {np.sum(rews)}, env = {env_index}, max_gap = {max_gap[env_index]}')
+                # # Update the weights variable which will later be used to update actor
+                # weights = [layer + alpha * (J/numtrajs * mult * epsilons[i] / sigma/N/2) if layer is not None else None for i,layer in enumerate(weights)] 
             
         test = list(actor.model.parameters())[0]
         actor.update_weights(weights)
@@ -128,7 +143,7 @@ if __name__ == "__main__":
         if ite % 50 == 0:
             print(f'Ite {ite}: movingAverage = {movingAverage}')
         
-        wandb.log({ "Training Reward" : rrecord[-1], "Training Reward Moving Average" : movingAverage})
+        wandb.log({ "Training reward" : rrecord[-1], "movingAverage" : movingAverage})
         
 
 

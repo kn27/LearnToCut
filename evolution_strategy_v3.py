@@ -1,7 +1,7 @@
 from gymenv_v2 import make_multiple_env
 import numpy as np
 from value import ValueFunction
-from policy import Policy, SimplePolicy
+from policy import Policy, SimplePolicy, SimplePolicy2
 import wandb
 import torch
 from multiprocessing import Pool
@@ -43,7 +43,7 @@ hard_config = {
 if __name__ == "__main__":
 
     # hyperparameters
-    numtrajs = 3  # num of trajecories from the current policy to collect in each iteration
+    numtrajs = 10  # num of trajecories from the current policy to collect in each iteration
     iterations = 100  # total num of iterations
     gamma = .99  # discount
     sigma = 2
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     varsize =  A.shape[1]    
 
     # initialize networks
-    actor = SimplePolicy(varsize)
+    actor = SimplePolicy2(varsize)
 
     #To record training reward for logging and plotting purposes
     rrecord = []
@@ -130,7 +130,6 @@ if __name__ == "__main__":
         
         wandb.log({ "Training Reward" : rrecord[-1], "Training Reward Moving Average" : movingAverage})
         
-
 
 
 

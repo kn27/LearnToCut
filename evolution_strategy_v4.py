@@ -1,7 +1,7 @@
 from gymenv_v2 import make_multiple_env
 import numpy as np
 from value import ValueFunction
-from policy import Policy, SimplePolicy
+from policy import Policy, SimplePolicy, SimplePolicy2
 import wandb
 import torch
 from multiprocessing import Pool
@@ -44,14 +44,14 @@ if __name__ == "__main__":
 
     # hyperparameters
     numtrajs = 3  # num of trajecories from the current policy to collect in each iteration
-    iterations = 100  # total num of iterations
+    iterations = 1000  # total num of iterations
     gamma = .99  # discount
     sigma = 2
-    N = 3
+    N = 2
     alpha = 0.1
 
     # create env
-    env = make_multiple_env(**custom_config)
+    env = make_multiple_env(**easy_config)
     max_gap = {i: single_env.env.max_gap()[0] for i, single_env in enumerate(env.envs)}
     print(f'Max gap : {max_gap}')
     A, b, c0, cuts_a, cuts_b = env.reset()
@@ -130,7 +130,6 @@ if __name__ == "__main__":
         
         wandb.log({ "Training Reward" : rrecord[-1], "Training Reward Moving Average" : movingAverage})
         
-
 
 
 

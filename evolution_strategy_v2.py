@@ -43,7 +43,7 @@ hard_config = {
 if __name__ == "__main__":
 
     # hyperparameters
-    numtrajs = 3  # num of trajecories from the current policy to collect in each iteration
+    numtrajs = 10  # num of trajecories from the current policy to collect in each iteration
     iterations = 100  # total num of iterations
     gamma = .99  # discount
     sigma = 2
@@ -130,7 +130,6 @@ if __name__ == "__main__":
         
         wandb.log({ "Training Reward" : rrecord[-1], "Training Reward Moving Average" : movingAverage})
         
-
 
 
 

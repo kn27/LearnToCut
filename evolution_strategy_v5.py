@@ -6,6 +6,7 @@ import wandb
 import torch
 from multiprocessing import Pool
 import copy
+import time 
 
 torch.set_default_dtype(torch.float64)
 
@@ -27,8 +28,8 @@ custom_config = {
 # Easy Setup: Use the following environment settings. We will evaluate your agent with the same easy config below:
 easy_config = {
     "load_dir"        : 'instances/train_10_n60_m60',
-    "idx_list"        : list(range(10)),
-    "timelimit"       : 50,
+    "idx_list"        : list(range(1)),
+    "timelimit"       : 30,
     "reward_type"     : 'obj'
 }
 
@@ -44,14 +45,14 @@ if __name__ == "__main__":
 
     # hyperparameters
     numtrajs = 3  # num of trajecories from the current policy to collect in each iteration
-    iterations = 100  # total num of iterations
+    iterations = 1000  # total num of iterations
     gamma = .99  # discount
     sigma = 2
     N = 3
-    alpha = 0.1
+    alpha = 0.5
 
     # create env
-    env = make_multiple_env(**custom_config)
+    env = make_multiple_env(**easy_config)
     max_gap = {i: single_env.env.max_gap()[0] for i, single_env in enumerate(env.envs)}
     print(f'Max gap : {max_gap}')
     A, b, c0, cuts_a, cuts_b = env.reset()
@@ -64,10 +65,14 @@ if __name__ == "__main__":
     rrecord = []
     
     # main iteration
-    for ite in range(iterations): 
+
+    for ite in range(iterations):
+        sigma = 4 * max(0.5, 1- ite/iterations)
+        alpha = min(0.9, max(0.1, 1 - ite/iterations))
         weights = actor.get_weights() 
 
         for n in range(N):
+            time0 = time.time()
             # Make a copy of the current network
             epsilons = [np.random.normal(0,1,layer.shape) if layer is not None else None for layer in weights]
             for mult in [-1,1]:
@@ -104,13 +109,17 @@ if __name__ == "__main__":
                 J = 0
                 actionss = []
                 for num in range(numtrajs):
+                    time1 = time.time()
                     rews,actions,env_index = actor_clone.rollout(env)
                     actionss.append(actions)
                     J+= np.sum([reward * gamma **i for i,reward in enumerate(rews)])
-                    print(f'iter = {ite}, n = {n}, traj = {num}: rews = {np.sum(rews)}, env = {env_index}, max_gap = {max_gap[env_index]}')
+                    print(f'iter = {ite}, n = {n}, traj = {num}: rews = {np.sum(rews)}, env = {env_index}, max_gap = {max_gap[env_index]}, time: {time.time()-time1}')
                 # Update the weights variable which will later be used to update actor
                 weights = [layer + alpha * (J/numtrajs * mult * epsilons[i] / sigma/N/2) if layer is not None else None for i,layer in enumerate(weights)] 
             
+            print(f'Time elapsed per n: {time.time()- time0}')
+
+
         test = list(actor.model.parameters())[0]
         actor.update_weights(weights)
         assert all((list(actor_clone.model.parameters())[0] != test).flatten())
@@ -128,7 +137,7 @@ if __name__ == "__main__":
         if ite % 50 == 0:
             print(f'Ite {ite}: movingAverage = {movingAverage}')
         
-        wandb.log({ "Training Reward" : rrecord[-1], "Training Reward Moving Average" : movingAverage})
+        wandb.log({ "Training reward" : rrecord[-1], "movingAverage" : movingAverage})
         
 
 
