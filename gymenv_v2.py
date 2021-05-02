@@ -144,13 +144,17 @@ class GurobiOriginalEnv(object):
 
 
 class MultipleEnvs(object):
-	def __init__(self, envs):
+	def __init__(self, envs, timelimit, seed=None):
 		self.envs = envs
 		self.all_indices = list(range(len(self.envs)))
 		self.available_indices = list(range(len(self.envs)))
 		self.env_index = None
 		self.env_now = None
-
+		self.timelimit = timelimit
+		if seed is not None:
+			self.seed = seed
+			np.random.seed(seed)
+			
 	def reset(self):
 		self.env_index = np.random.choice(self.available_indices)
 		self.available_indices.remove(self.env_index)
@@ -183,7 +187,7 @@ class timelimit_wrapper(object):
 
 
 # some functions for loading instances
-def make_multiple_env(load_dir, idx_list, timelimit, reward_type):
+def make_multiple_env(load_dir, idx_list, timelimit, reward_type, seed=None):
 	envs = []
 	for idx in idx_list:
 		print('loading training instances, dir {} idx {}'.format(load_dir, idx))
@@ -192,6 +196,6 @@ def make_multiple_env(load_dir, idx_list, timelimit, reward_type):
 		c = np.load('{}/c_{}.npy'.format(load_dir, idx))
 		env = timelimit_wrapper(GurobiOriginalEnv(A, b, c, solution=None, reward_type=reward_type), timelimit)
 		envs.append(env)
-	env_final = MultipleEnvs(envs)
+	env_final = MultipleEnvs(envs,timelimit,seed)
 	return env_final
 

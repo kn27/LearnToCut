@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "env": {"GOOGLE_APPLICATION_CREDENTIALS" : "/home/keane/GoogleAPI/deft-beacon-311219-6ecf704f1119.json"},
+            "console": "integratedTerminal",
+            //"args": ["-nd", "10","--seed", "1", "--step_size", "0.1", "--delta_std", "0.05", "--policy_type", "lstmembed", "--rollout_length", "12", "--num_time_steps", "4000", "--iters", "20"]
+            // "args": ["--config", "easy_config", 
+            //          "--policy_type", "attention",   
+            //          "--n_iter", "20", 
+            //          "--n_directions", "10",
+            //          "--seed", "1", 
+            //          "--step_size", "0.1", 
+            //          "--delta_std", "0.05",  
+            //          "--n_workers", "11",
+            //          "--rollout_length", "50"]
+            // "args": ["--config", "easy_config", 
+            //         "--policy_type", "attention",   
+            //         "--n_iter", "20", 
+            //         "--n_directions", "10",
+            //         "--seed", "1", 
+            //         "--step_size", "0.1", 
+            //         "--delta_std", "0.05",  
+            //         "--n_workers", "11",
+            //         "--rollout_length", "50",
+            //         "--reload", "True",
+            //         "--reload_dir_path", "/home/keane/git/IEOR4575_Labs/learn2cut_gym/datadata/config=easy_config | policy_type=attention | n_iter=20 | n_directions=10 | seed=1 | step_size=0.1 | deltas_used=8 | delta_std=0.05 | n_workers=11 | rollout_length=50 | shift=0 | dir_path=data | reload=False | reload_dir_path=data | filter=MeanStdFilter/lin_policy_plus_19.npz",
+            //         "--tag","continue"]
+            "args": ["--config", "custom_config", 
+                    "--policy_type", "attention",   
+                    "--n_iter", "100", 
+                    "--n_directions", "12",
+                    "--seed", "1", 
+                    "--step_size", "0.1", 
+                    "--delta_std", "0.02",
+                    "--deltas_used", "6",  
+                    "--n_workers", "12",
+                    "--rollout_length", "10",
+                    "--filter", "MeanStdFilter"]
+        }
+    ]
+}
